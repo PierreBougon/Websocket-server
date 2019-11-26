@@ -1,4 +1,4 @@
-package app
+package main
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ func main() {
 	// Get port from .env file, we did not specify any port so this should return an empty string when tested locally
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "80"
+		port = "443"
 	}
 
 	fmt.Println(port)
