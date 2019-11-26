@@ -1,0 +1,47 @@
+language: go
+go:
+  - 1.12.x
+
+branches:
+  only:
+    - master
+    - develop
+    - fix_travis_yml
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get --yes remove postgresql\*
+  - sudo apt-get install -y postgresql-11 postgresql-client-11
+  - sudo cp /etc/postgresql/{9.6,11}/main/pg_hba.conf
+  - sudo service postgresql restart 11
+
+install:
+  - go get -u github.com/kardianos/govendor
+  - go get github.com/onsi/ginkgo/ginkgo
+  - govendor sync
+  - export PATH=$PATH:$HOME/gopath/bin
+
+services:
+  - postgresql
+
+addons:
+  postgresql: "11.2"
+
+env:
+  - DATABASE_URL=postgres://postgres:@localhost:5432/travis_ci_test
+
+before_script:
+  - psql --version
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - psql -c 'CREATE ROLE travis SUPERUSER LOGIN CREATEDB;' -U postgres
+
+script: ginkgo --failOnPending=false --noisyPendings=false --randomizeAllSpecs --randomizeSuites --cover --trace --race --compilers=2 -covermode=atomic -coverpkg ./... ./...
+
+after_success:
+  - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
+  - chmod +x send.sh
+  - ./send.sh success $WEBHOOK_URL
+after_failure:
+  - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
+  - chmod +x send.sh
+  - ./send.sh failure $WEBHOOK_URL
